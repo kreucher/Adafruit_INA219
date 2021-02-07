@@ -475,9 +475,24 @@ void Adafruit_INA219::setCalibration_16V_400mA() {
   _success = config_reg.write(config, 2);
 }
 
-void Adafruit_INA219::setCalibration(INA219_BusVoltage busVoltage, INA219_ShuntGain shuntGain,
-    double maxCurrent, double Rshunt) {
-  // calculate voltage per bit, keep to 2 significant figures
+/*!
+ *  @brief  Sets device calibration to a custom value, useful when
+ *          using an external shunt.
+ *  @param  busVoltage the max voltage you expect (16V or 32V)
+ *  @param  shuntGain the gain most matching your shunt's max expected voltage
+ *  @param  maxCurrent the max current the shunt supports (eg 150A)
+ *  @param  Rshunt the resistance in Ohms of the shunt (eg 0.0005)
+ *  @note   Supports shunts sized anywhere from 100mA to 1000A.
+ *          Example a "75mA 150A" shunt on a 12V battery would use:
+ *            busVoltage = INA219_CONFIG_BVOLTAGERANGE_16V,
+ *            shuntGain = INA219_CONFIG_GAIN_2_80MV,
+ *            maxCurrent = 150
+ *            Rshunt = (0.075 / 150) = 0.0005
+ */
+void Adafruit_INA219::setCalibration(INA219_BusVoltage busVoltage,
+    INA219_ShuntGain shuntGain, double maxCurrent, double Rshunt) {
+  // calculate voltage per bit, rounded to ~one significant figure,
+  // this helps produce nice calibration values like 4096, 8192 etc.
   double minLSB = maxCurrent / 32768.0;
   double maxLSB = maxCurrent / 4096.0;
   double currentLSB = minLSB + ((maxLSB - minLSB) / 2);
@@ -501,7 +516,7 @@ void Adafruit_INA219::setCalibration(INA219_BusVoltage busVoltage, INA219_ShuntG
   ina219_currentDivider_mA = 1 / (currentLSB * 1000);
   ina219_powerMultiplier_mW = (20 * currentLSB) * 1000;
 
-  // Set Config register to take into account the settings above
+  // note, averaging enabled to help minimize noise when using external shunts
   uint16_t config = busVoltage |
                     shuntGain | INA219_CONFIG_BADCRES_12BIT_64S_34MS |
                     INA219_CONFIG_SADCRES_12BIT_64S_34MS |
