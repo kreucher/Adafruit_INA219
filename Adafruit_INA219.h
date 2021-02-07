@@ -42,7 +42,7 @@
 #define INA219_CONFIG_BVOLTAGERANGE_MASK (0x2000) // Bus Voltage Range Mask
 
 /** bus voltage range values **/
-enum {
+enum INA219_BusVoltage {
   INA219_CONFIG_BVOLTAGERANGE_16V = (0x0000), // 0-16V Range
   INA219_CONFIG_BVOLTAGERANGE_32V = (0x2000), // 0-32V Range
 };
@@ -51,7 +51,7 @@ enum {
 #define INA219_CONFIG_GAIN_MASK (0x1800) // Gain Mask
 
 /** values for gain bits **/
-enum {
+enum INA219_ShuntGain {
   INA219_CONFIG_GAIN_1_40MV = (0x0000),  // Gain 1, 40mV Range
   INA219_CONFIG_GAIN_2_80MV = (0x0800),  // Gain 2, 80mV Range
   INA219_CONFIG_GAIN_4_160MV = (0x1000), // Gain 4, 160mV Range
@@ -154,6 +154,8 @@ public:
   void setCalibration_32V_2A();
   void setCalibration_32V_1A();
   void setCalibration_16V_400mA();
+  void setCalibration(INA219_BusVoltage busVoltage, INA219_ShuntGain shuntGain,
+      double maxCurrent, double Rshunt);
   float getBusVoltage_V();
   float getShuntVoltage_mV();
   float getCurrent_mA();
@@ -170,7 +172,7 @@ private:
   uint32_t ina219_calValue;
   // The following multipliers are used to convert raw current and power
   // values to mA and mW, taking into account the current config settings
-  uint32_t ina219_currentDivider_mA;
+  float ina219_currentDivider_mA;
   float ina219_powerMultiplier_mW;
 
   void init();

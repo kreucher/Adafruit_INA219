@@ -475,6 +475,42 @@ void Adafruit_INA219::setCalibration_16V_400mA() {
   _success = config_reg.write(config, 2);
 }
 
+void Adafruit_INA219::setCalibration(INA219_BusVoltage busVoltage, INA219_ShuntGain shuntGain,
+    double maxCurrent, double Rshunt) {
+  // calculate voltage per bit, keep to 2 significant figures
+  double minLSB = maxCurrent / 32768.0;
+  double maxLSB = maxCurrent / 4096.0;
+  double currentLSB = minLSB + ((maxLSB - minLSB) / 2);
+  if (maxCurrent >= 1000) {
+    currentLSB = floor(currentLSB * 10) / 10.0;
+  } else if (maxCurrent >= 100) {
+    currentLSB = floor(currentLSB * 100) / 100.0;
+  } else if (maxCurrent >= 10) {
+    currentLSB = floor(currentLSB * 1000) / 1000.0;
+  } else if (maxCurrent >= 1) {
+    currentLSB = floor(currentLSB * 10000) / 10000.0;
+  } else {
+    currentLSB = floor(currentLSB * 100000) / 100000.0;
+  }
+  ina219_calValue = trunc(0.04096 / (currentLSB * Rshunt));
+
+  Adafruit_BusIO_Register calibration_reg =
+      Adafruit_BusIO_Register(i2c_dev, INA219_REG_CALIBRATION, 2, MSBFIRST);
+  calibration_reg.write(ina219_calValue, 2);
+
+  ina219_currentDivider_mA = 1 / (currentLSB * 1000);
+  ina219_powerMultiplier_mW = (20 * currentLSB) * 1000;
+
+  // Set Config register to take into account the settings above
+  uint16_t config = busVoltage |
+                    shuntGain | INA219_CONFIG_BADCRES_12BIT_64S_34MS |
+                    INA219_CONFIG_SADCRES_12BIT_64S_34MS |
+                    INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
+  Adafruit_BusIO_Register config_reg =
+      Adafruit_BusIO_Register(i2c_dev, INA219_REG_CONFIG, 2, MSBFIRST);
+  config_reg.write(config, 2);
+}
+
 /*!
  *  @brief  Provides the the underlying return value from the last operation
  *          called on the device.
